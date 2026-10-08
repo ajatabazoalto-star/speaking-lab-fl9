@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Speaking Reinforcement — Flight 9 (A1)</title>
+<style>
+  :root{
+    --navy:#0b1f3a;
+    --navy2:#122a4d;
+    --sky:#1ea7e8;
+    --amber:#f5a623;
+    --green:#28c76f;
+    --red:#ea5455;
+    --purple:#8e6ef2;
+    --ink:#122036;
+    --paper:#f4f8fc;
+    --card:#ffffff;
+    --muted:#6b7c93;
+    --radius:16px;
+    --shadow:0 8px 24px rgba(11,31,58,0.12);
+    font-family:'Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);}
+  body{min-height:100vh;}
+
+  header.topbar{
+    background:linear-gradient(135deg,var(--navy) 0%, var(--navy2) 100%);
+    color:#fff;padding:16px 18px 12px;position:sticky;top:0;z-index:50;
+    box-shadow:0 4px 18px rgba(0,0,0,.25);
+  }
+  .topbar-inner{max-width:1000px;margin:0 auto;}
+  .badge{
+    display:inline-block;background:var(--red);color:#fff;font-size:11px;font-weight:700;
+    letter-spacing:1px;padding:5px 12px;border-radius:20px;text-transform:uppercase;margin-bottom:8px;
+  }
+  header.topbar h1{margin:0 0 4px;font-size:clamp(17px,3.4vw,24px);}
+  header.topbar p{margin:0 0 12px;color:#b9c8de;font-size:12.5px;}
+
+  nav.phasenav{display:flex;gap:6px;flex-wrap:wrap;}
+  nav.phasenav button{
+    flex:1 1 100px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
+    color:#dce6f5;padding:8px 6px;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;
+    transition:.2s;text-align:center;
+  }
+  nav.phasenav button .num{display:block;font-size:9px;font-weight:800;color:var(--amber);letter-spacing:1px;margin-bottom:2px;}
+  nav.phasenav button.active{background:var(--sky);border-color:var(--sky);color:#fff;}
+  nav.phasenav button.locked{opacity:.4;cursor:not-allowed;}
+  nav.phasenav button.completed{background:var(--green);border-color:var(--green);color:#fff;}
+  nav.phasenav button:hover:not(.active):not(.locked){background:rgba(255,255,255,0.16);}
+
+  .progress-outer{height:6px;background:rgba(255,255,255,0.15);border-radius:6px;margin-top:10px;overflow:hidden;}
+  .progress-inner{height:100%;width:0%;background:linear-gradient(90deg,var(--sky),var(--amber));transition:width .4s ease;}
+
+  main{max-width:1000px;margin:0 auto;padding:26px 18px 70px;}
+  .phase{display:none;animation:fadeIn .4s ease;}
+  .phase.active{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  .phase-title{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .phase-title .bar{width:5px;height:26px;background:var(--red);border-radius:3px;}
+  .phase-title h2{margin:0;font-size:clamp(18px,3.2vw,24px);}
+  .phase-sub{color:var(--muted);margin:0 0 22px;font-size:14px;max-width:760px;}
+
+  /* ===== SPEECH PRACTICE CARD ===== */
+  .sp-wrap{max-width:780px;margin:0 auto;}
+  .sp-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px;text-align:center;}
+  .sp-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .sp-num{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.5px;}
+  .sp-score{font-size:13px;font-weight:800;color:var(--green);}
+  .sp-dots{display:flex;gap:6px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;}
+  .sp-dot{width:22px;height:22px;border-radius:50%;background:#e2ebf3;color:var(--muted);display:flex;
+    align-items:center;justify-content:center;font-size:10px;font-weight:800;}
+  .sp-dot.active{background:var(--sky);color:#fff;}
+  .sp-dot.done{background:var(--green);color:#fff;}
+  .sp-dot.fail{background:var(--red);color:#fff;}
+
+  .sp-label{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+  .sp-target{font-size:clamp(18px,3.4vw,24px);font-weight:800;color:var(--navy);margin:10px 0 6px;line-height:1.4;}
+  .sp-context{background:#eef4fb;border-left:4px solid var(--sky);border-radius:8px;padding:12px 16px;
+    margin:12px auto 16px;text-align:left;font-size:13.5px;color:var(--navy);font-weight:600;max-width:600px;}
+  .sp-context strong{color:var(--navy2);display:block;margin-bottom:4px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+  .sp-hint{color:var(--muted);font-size:13px;margin-bottom:14px;}
+
+  .sp-audio-row{display:flex;justify-content:center;gap:14px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+  .sp-audio-row .speak-btn.big{width:54px;height:54px;font-size:22px;}
+  .sp-audio-row .slow-btn{
+    background:var(--amber);border:none;color:#3a2600;width:54px;height:54px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;font-weight:800;
+    transition:.15s;box-shadow:0 4px 12px rgba(245,166,35,.3);
+  }
+  .sp-audio-row .slow-btn:hover{transform:scale(1.06);background:#e59512;}
+  .sp-audio-label{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:center;margin-top:2px;}
+
+  .sp-controls{display:flex;justify-content:center;gap:16px;align-items:center;margin-bottom:16px;}
+  .mic-btn{width:80px;height:80px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:30px;
+    cursor:pointer;box-shadow:0 6px 18px rgba(234,84,85,.35);transition:.15s;}
+  .mic-btn:hover{transform:scale(1.06);}
+  .mic-btn.listening{animation:pulseMic 1s infinite;background:#c53030;}
+  .mic-btn:disabled{opacity:.4;cursor:not-allowed;}
+  @keyframes pulseMic{0%{box-shadow:0 0 0 0 rgba(234,84,85,.6);}70%{box-shadow:0 0 0 20px rgba(234,84,85,0);}100%{box-shadow:0 0 0 0 rgba(234,84,85,0);}}
+
+  .sp-transcript{min-height:26px;font-size:14px;color:var(--muted);font-style:italic;margin-bottom:10px;padding:0 10px;}
+  .sp-feedback{font-weight:800;font-size:15px;min-height:24px;padding:0 10px;}
+  .sp-feedback.ok{color:var(--green);}
+  .sp-feedback.bad{color:var(--amber);}
+
+  .sp-actions{margin-top:18px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;}
+  .sp-next{background:var(--navy);color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;display:none;transition:.15s;}
+  .sp-next:hover{background:var(--sky);}
+  .sp-next.show{display:inline-block;}
+  .sp-retry{background:var(--amber);color:#3a2600;border:none;padding:12px 24px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;display:none;}
+  .sp-retry:hover{background:#e59512;}
+  .sp-retry.show{display:inline-block;}
+  .sp-unsupported{background:#fff6e6;color:#8a6300;border-radius:12px;padding:14px;font-size:13px;font-weight:600;margin-top:10px;}
+
+  .speak-btn{background:var(--sky);border:none;color:#fff;width:34px;height:34px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;transition:.15s;}
+  .speak-btn:hover{background:var(--navy);}
+
+  .nav-btn{background:var(--navy);color:#fff;border:none;padding:12px 22px;border-radius:10px;font-weight:700;
+    cursor:pointer;font-size:14px;transition:.15s;}
+  .nav-btn:hover{background:var(--sky);}
+  .nav-btn.ghost{background:#eef4fb;color:var(--navy);}
+  .nav-btn.ghost:hover{background:#dfeaf6;}
+
+  .intro-card, .final-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:40px 26px;text-align:center;max-width:640px;margin:0 auto;}
+  .intro-card .intro-icon, .medal{font-size:70px;margin-bottom:8px;}
+  .intro-card h3, .final-card h3{font-size:24px;color:var(--navy);margin:0 0 8px;}
+  .intro-card p, .final-card p{color:var(--muted);font-size:14px;margin:0 0 20px;line-height:1.5;}
+  .intro-card ul{text-align:left;display:inline-block;color:var(--muted);font-size:13.5px;margin:0 auto 22px;padding-left:20px;line-height:1.7;}
+  .start-btn{background:var(--green);border:none;color:#fff;padding:14px 30px;border-radius:10px;font-weight:800;cursor:pointer;font-size:15px;transition:.15s;}
+  .start-btn:hover{background:#1ea855;transform:translateY(-2px);}
+  .restart-btn{background:var(--amber);border:none;color:#3a2600;padding:13px 26px;border-radius:10px;font-weight:800;cursor:pointer;font-size:14.5px;margin:6px;}
+  .next-section-btn{background:var(--navy);border:none;color:#fff;padding:13px 26px;border-radius:10px;font-weight:800;cursor:pointer;font-size:14.5px;margin:6px;}
+  .next-section-btn:hover{background:var(--sky);}
+
+  .final-score-big{font-size:52px;font-weight:900;color:var(--sky);margin-bottom:4px;}
+  .final-score-sub{color:var(--muted);font-size:13px;margin-bottom:22px;}
+  .final-breakdown{display:flex;flex-direction:column;gap:12px;text-align:left;margin:0 auto 26px;max-width:460px;}
+  .fb-row{display:flex;align-items:center;gap:12px;}
+  .fb-row .fb-label{width:130px;font-size:12.5px;font-weight:700;color:var(--ink);flex-shrink:0;}
+  .fb-row .fb-bar-outer{flex:1;height:10px;background:#e2ebf3;border-radius:6px;overflow:hidden;}
+  .fb-row .fb-bar-inner{height:100%;background:linear-gradient(90deg,var(--sky),var(--green));border-radius:6px;}
+  .fb-row .fb-val{width:52px;text-align:right;font-size:12.5px;font-weight:800;color:var(--muted);}
+
+  footer.bottom{text-align:center;color:var(--muted);font-size:12px;padding:20px;}
+  footer.bottom span{color:var(--red);font-weight:700;}
+
+  @media(max-width:640px){
+    nav.phasenav button{font-size:10px;padding:7px 4px;}
+    .mic-btn{width:66px;height:66px;font-size:24px;}
+    .sp-card{padding:20px 16px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <span class="badge">🎤 Speaking Reinforcement · Flight 9 · A1 Level</span>
+    <h1>Speaking Practice — Directions &amp; Future Plans</h1>
+    <p>Listen slowly, repeat clearly, and master airport directions and future plans.</p>
+    <nav class="phasenav" id="phaseNav">
+      <button class="phase-btn active" data-phase="1"><span class="num">SECTION 1</span>Airport Zones</button>
+      <button class="phase-btn locked" data-phase="2"><span class="num">SECTION 2</span>Prepositions</button>
+      <button class="phase-btn locked" data-phase="3"><span class="num">SECTION 3</span>Action Verbs</button>
+      <button class="phase-btn locked" data-phase="4"><span class="num">SECTION 4</span>Be Going To</button>
+      <button class="phase-btn locked" data-phase="5"><span class="num">SECTION 5</span>Role-play ATC</button>
+    </nav>
+    <div class="progress-outer"><div class="progress-inner" id="topProgress"></div></div>
+  </div>
+</header>
+
+<main>
+  <section class="phase active" id="phase1"></section>
+  <section class="phase" id="phase2"></section>
+  <section class="phase" id="phase3"></section>
+  <section class="phase" id="phase4"></section>
+  <section class="phase" id="phase5"></section>
+</main>
+
+<footer class="bottom">✈️ Flight 9 · <span>Speaking Reinforcement (A1)</span></footer>
+
+<script>
+/* ============================================================
+   CONTENT — 5 SECTIONS × 10 PHRASES
+   ============================================================ */
+const SECTIONS = [
+  {
+    id: 1,
+    title: 'Airport Zones & Objects',
+    barColor: 'var(--sky)',
+    intro: {
+      icon: '🛬',
+      headline: 'Section 1 — Airport Zones & Objects',
+      desc: 'You will repeat the key airport zones and objects used in ground operations.',
+      tips: [
+        '🐢 Press the SLOW button to hear the phrase very slowly.',
+        '🔊 Press the blue button to hear it at normal speed.',
+        '🎙️ Then press the microphone and say the phrase.',
+        '🔁 You can retry as many times as you need.'
+      ]
+    },
+    phrases: [
+      { text: 'This is the taxiway.', context: 'The taxiway is used for ground movement.' },
+      { text: 'The threshold is at the start of the runway.', context: 'The threshold is where the runway begins.' },
+      { text: 'The apron is for parking and loading.', context: 'The apron is the parking area for aircraft.' },
+      { text: 'There is an intersection ahead.', context: 'An intersection is where two taxiways cross.' },
+      { text: 'Stop at the hold short line.', context: 'The hold short line is a mandatory stop before a runway.' },
+      { text: 'The hangar is for maintenance.', context: 'The hangar is the maintenance building.' },
+      { text: 'The control tower controls the traffic.', context: 'The control tower manages aircraft movements.' },
+      { text: 'The terminal is for passengers.', context: 'The terminal is the passenger building.' },
+      { text: 'Check the wind cone for wind direction.', context: 'The wind cone shows the wind direction.' },
+      { text: 'Follow the yellow signage.', context: 'Signage helps ground vehicles move safely.' }
+    ]
+  },
+  {
+    id: 2,
+    title: 'Prepositions of Direction',
+    barColor: 'var(--purple)',
+    intro: {
+      icon: '🧭',
+      headline: 'Section 2 — Prepositions of Direction',
+      desc: 'You will practice prepositions used in ground operations: behind, in front of, beside, between, under, above, below, across, straight ahead.',
+      tips: [
+        '📍 Prepositions show the position of objects.',
+        '🔊 Listen carefully to each preposition.',
+        '🎙️ Repeat the full sentence clearly.',
+        '💡 Imagine the scene while you speak.'
+      ]
+    },
+    phrases: [
+      { text: 'The fuel truck is behind the aircraft.', context: 'The fuel truck is at the back of the aircraft.' },
+      { text: 'Never walk in front of a moving engine.', context: 'Safety rule for all ground crew.' },
+      { text: 'The marshaller is beside the nose gear.', context: 'The marshaller stands next to the nose gear.' },
+      { text: 'Stand 3 is between Hangar A and Hangar B.', context: 'Stand 3 is located in the middle of two hangars.' },
+      { text: 'Place the toolbox under the wing.', context: 'The toolbox goes below the wing.' },
+      { text: 'The drone is flying above the control tower.', context: 'The drone is flying over the tower.' },
+      { text: 'The red safety zone is below the wing.', context: 'The red zone is under the wing.' },
+      { text: 'The tractor is driving across the ramp.', context: 'The tractor crosses the ramp area.' },
+      { text: 'Proceed straight ahead to the parking stand.', context: 'Go forward without turning.' },
+      { text: 'Stop right at the red line.', context: 'Stop exactly at the red line.' }
+    ]
+  },
+  {
+    id: 3,
+    title: 'Action Verbs',
+    barColor: 'var(--green)',
+    intro: {
+      icon: '🚦',
+      headline: 'Section 3 — Action Verbs for Ground Operations',
+      desc: 'You will practice standard ground operation verbs: taxi, stop, cross, turn, proceed, hold short, marshal, park.',
+      tips: [
+        '🚕 TAXI = move on the ground.',
+        '🛑 STOP = do not move.',
+        '➡️ PROCEED = continue forward.',
+        '🎙️ Say each instruction clearly and with confidence.'
+      ]
+    },
+    phrases: [
+      { text: 'Taxi the aircraft down Taxiway Alpha.', context: 'Move the aircraft along Taxiway Alpha.' },
+      { text: 'Do not stop on the runway.', context: 'Never stop on an active runway.' },
+      { text: 'Cross Runway 12 and proceed to the ramp.', context: 'Cross the runway and go to the ramp.' },
+      { text: 'Turn the aircraft ninety degrees right.', context: 'Make a ninety-degree right turn.' },
+      { text: 'Stop exactly at the red safety line.', context: 'Stop precisely at the red line.' },
+      { text: 'Proceed straight ahead toward the stand.', context: 'Go forward to the parking stand.' },
+      { text: 'Hold short of Runway 18.', context: 'Stop before entering Runway 18.' },
+      { text: 'Marshal the aircraft to Stand 5.', context: 'Guide the aircraft to Stand 5.' },
+      { text: 'Park the aircraft at the gate.', context: 'Position the aircraft at the gate.' },
+      { text: 'Check the wind cone before taxiing.', context: 'Verify the wind before moving.' }
+    ]
+  },
+  {
+    id: 4,
+    title: 'Future with Be Going To',
+    barColor: 'var(--amber)',
+    intro: {
+      icon: '⏭️',
+      headline: 'Section 4 — Future with "Be Going To"',
+      desc: 'You will describe future operational plans using "be going to" + verb.',
+      tips: [
+        '📘 Structure: Subject + am/is/are + going to + verb.',
+        '✈️ Example: "We are going to land."',
+        '🔊 Listen to the rhythm of the structure.',
+        '🎙️ Repeat the full sentence clearly.'
+      ]
+    },
+    phrases: [
+      { text: 'We are going to land on Runway 24.', context: 'Future landing plan.' },
+      { text: 'The captain is going to taxi to Stand 4.', context: 'Future taxi plan.' },
+      { text: 'The copilot is going to check the wind cone.', context: 'Future wind check.' },
+      { text: 'We are going to cross the intersection now.', context: 'Immediate future action.' },
+      { text: 'The aircraft is going to park at Stand 5.', context: 'Future parking plan.' },
+      { text: 'The ground crew is going to check the wind cone.', context: 'Future ground operation.' },
+      { text: 'The fuel truck is going to start refueling.', context: 'Future refueling action.' },
+      { text: 'The tug is going to proceed to the parking stand.', context: 'Future tug movement.' },
+      { text: 'We are going to hold short of Runway 18.', context: 'Future holding instruction.' },
+      { text: 'The marshaller is going to guide the pilots.', context: 'Future marshalling action.' }
+    ]
+  },
+  {
+    id: 5,
+    title: 'Role-play ATC ↔ Pilot',
+    barColor: 'var(--red)',
+    intro: {
+      icon: '📻',
+      headline: 'Section 5 — Role-play ATC ↔ Pilot',
+      desc: 'You are the pilot. Listen to the ATC question and answer in a complete, clear sentence.',
+      tips: [
+        '🎧 The ATC voice will ask you a question.',
+        '🎙️ You answer with the correct phrase.',
+        '💬 Focus on fluency — speak naturally.',
+        '🏁 This is the final section — you can do it!'
+      ]
+    },
+    phrases: [
+      { atc: 'Where are you going to park?', text: 'We are going to park at Stand 5.', context: 'Parking plan answer.' },
+      { atc: 'When are you going to land?', text: 'We are going to land in five minutes.', context: 'Landing time answer.' },
+      { atc: 'Where is the fuel truck?', text: 'It is behind the aircraft.', context: 'Position of the fuel truck.' },
+      { atc: 'Why must you hold short?', text: 'Because of a catering truck on the ramp.', context: 'Reason for holding short.' },
+      { atc: 'What are you going to check?', text: 'We are going to check the wind cone.', context: 'Future check answer.' },
+      { atc: 'Where is Stand 5?', text: 'It is between the terminal and Hangar 2.', context: 'Location of Stand 5.' },
+      { atc: 'How are you going to taxi?', text: 'We are going to taxi via Taxiway Alpha.', context: 'Taxi route answer.' },
+      { atc: 'Where is the marshaller?', text: 'He is beside the nose gear.', context: 'Position of the marshaller.' },
+      { atc: 'What is the wind direction?', text: 'The wind cone shows wind from the north.', context: 'Wind report.' },
+      { atc: 'Where must you stop?', text: 'We must stop at the hold short line.', context: 'Stop location.' }
+    ]
+  }
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  currentSection: 0,
+  unlocked: [true, false, false, false, false],
+  completed: [false, false, false, false, false],
+  results: [[], [], [], [], []],
+  currentIndex: 0,
+  score: 0,
+  attempts: 0,
+  recognition: null,
+  recognizing: false
+};
+const PASS_THRESHOLD = 0.8;
+
+/* ============================================================
+   SPEECH SYNTHESIS — SLOW FOR A1
+   ============================================================ */
+function speak(text, rate = 0.8){
+  if(!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  u.rate = rate;
+  u.pitch = 1;
+  const voices = window.speechSynthesis.getVoices();
+  const enVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang && v.lang.startsWith('en'));
+  if(enVoice) u.voice = enVoice;
+  window.speechSynthesis.speak(u);
+}
+window.speechSynthesis && window.speechSynthesis.getVoices();
+
+/* ============================================================
+   SOUND FX
+   ============================================================ */
+let audioCtx;
+function getCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playDing(){
+  try{
+    const ctx = getCtx();
+    [880, 1320].forEach((freq, i)=>{
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const start = ctx.currentTime + i*0.09;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.25, start+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start+0.25);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start+0.28);
+    });
+  }catch(e){}
+}
+function playBuzz(){
+  try{
+    const ctx = getCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = 160;
+    const start = ctx.currentTime;
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.15, start+0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start+0.3);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start+0.33);
+  }catch(e){}
+}
+function playFanfare(){
+  try{
+    const ctx = getCtx();
+    [523, 659, 784, 1047].forEach((freq, i)=>{
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const start = ctx.currentTime + i*0.12;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.2, start+0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start+0.4);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start+0.45);
+    });
+  }catch(e){}
+}
+
+/* ============================================================
+   SPEECH RECOGNITION HELPERS — tolerant for A1
+   ============================================================ */
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function normalize(str){
+  return str.toLowerCase()
+    .replace(/[^a-z0-9\s]/g,' ')
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+const EQUIVALENTS = {
+  'zero':'0','one':'1','two':'2','three':'3','four':'4','five':'5',
+  'six':'6','seven':'7','eight':'8','nine':'9','ten':'10',
+  'twelve':'12','eighteen':'18','twentyfour':'24','five':'5',
+  'thousand':'1000','thousands':'1000',
+  'do not':'dont','does not':'doesnt','is not':'isnt','are not':'arent',
+  'cannot':'cant','will not':'wont','i am':'im','it is':'its',
+  'a':'the','the':'a',
+  'taxi way':'taxiway','hold short':'holdshort'
+};
+
+function expandWord(w){
+  return EQUIVALENTS[w] || w;
+}
+
+function matchScore(target, heard){
+  const t = normalize(target).map(expandWord);
+  const hRaw = normalize(heard).map(expandWord);
+  const hSet = new Set(hRaw);
+  if(t.length === 0) return 0;
+  let hits = 0;
+  t.forEach(w => { if(hSet.has(w)) hits++; });
+  return hits / t.length;
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+const phaseNav = document.getElementById('phaseNav');
+const phaseBtns = phaseNav.querySelectorAll('.phase-btn');
+const phases = document.querySelectorAll('.phase');
+
+function goToPhase(n){
+  phases.forEach(p => p.classList.remove('active'));
+  document.getElementById('phase'+n).classList.add('active');
+  state.currentSection = n - 1;
+  updateNav();
+  updateTopProgress();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function updateNav(){
+  phaseBtns.forEach((btn, i)=>{
+    btn.classList.remove('active','locked','completed');
+    if(i === state.currentSection) btn.classList.add('active');
+    if(!state.unlocked[i]) btn.classList.add('locked');
+    if(state.completed[i]) btn.classList.add('completed');
+  });
+}
+
+function updateTopProgress(){
+  const total = SECTIONS.length * 10;
+  let done = 0;
+  state.results.forEach(arr => done += arr.filter(r => r && r.correct).length);
+  const pct = Math.round((done/total)*100);
+  document.getElementById('topProgress').style.width = pct + '%';
+}
+
+phaseBtns.forEach((btn, i)=>{
+  btn.addEventListener('click', ()=>{
+    if(!state.unlocked[i]) return;
+    goToPhase(i + 1);
+    renderSection(i);
+  });
+});
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderSection(idx){
+  state.currentIndex = 0;
+  state.score = 0;
+  state.attempts = 0;
+
+  if(state.completed[idx]){
+    renderSectionComplete(idx);
+    return;
+  }
+  renderIntro(idx);
+}
+
+function renderIntro(idx){
+  const sec = SECTIONS[idx];
+  const container = document.getElementById('phase' + (idx+1));
+  container.innerHTML = `
+    <div class="phase-title"><span class="bar" style="background:${sec.barColor};"></span><h2>Section ${idx+1} — ${sec.title}</h2></div>
+    <p class="phase-sub">${sec.intro.desc}</p>
+    <div class="intro-card">
+      <div class="intro-icon">${sec.intro.icon}</div>
+      <h3>${sec.intro.headline}</h3>
+      <p>${sec.intro.desc}</p>
+      <ul>${sec.intro.tips.map(t=>`<li>${t}</li>`).join('')}</ul>
+      <button class="start-btn" id="startSecBtn">🚀 Start Section ${idx+1}</button>
+    </div>
+  `;
+  document.getElementById('startSecBtn').addEventListener('click', ()=>{
+    state.results[idx] = new Array(sec.phrases.length).fill(null);
+    state.currentIndex = 0;
+    state.score = 0;
+    renderPhrase(idx);
+  });
+}
+
+function renderPhrase(idx){
+  const sec = SECTIONS[idx];
+  const container = document.getElementById('phase' + (idx+1));
+
+  if(state.currentIndex >= sec.phrases.length){
+    renderSectionComplete(idx);
+    return;
+  }
+
+  const p = sec.phrases[state.currentIndex];
+  const phraseText = p.text;
+  const atcLine = sec.id === 5 ? `<div class="sp-context"><strong>🎧 ATC says:</strong>${p.atc}</div>` : '';
+
+  container.innerHTML = `
+    <div class="phase-title"><span class="bar" style="background:${sec.barColor};"></span><h2>Section ${idx+1} — ${sec.title}</h2></div>
+    <p class="phase-sub">${sec.intro.desc}</p>
+    <div class="sp-wrap">
+      <div class="sp-card">
+        <div class="sp-top">
+          <div class="sp-num">PHRASE ${state.currentIndex+1} / ${sec.phrases.length}</div>
+          <div class="sp-score">⭐ Score: ${state.score}</div>
+        </div>
+        <div class="sp-dots">
+          ${sec.phrases.map((_, i)=>{
+            const r = state.results[idx][i];
+            let cls = '';
+            if(i === state.currentIndex) cls = 'active';
+            else if(r && r.correct) cls = 'done';
+            else if(r && !r.correct) cls = 'fail';
+            return `<div class="sp-dot ${cls}">${i+1}</div>`;
+          }).join('')}
+        </div>
+        ${atcLine}
+        <div class="sp-label">Your line — say it out loud</div>
+        <div class="sp-target">${phraseText}</div>
+        ${sec.id === 5 ? '' : `<div class="sp-context"><strong>💡 Context:</strong>${p.context}</div>`}
+        <div class="sp-hint">Press the microphone and say the sentence clearly. You can try again as many times as you need.</div>
+
+        <div class="sp-audio-row">
+          <div>
+            <button class="speak-btn big" id="spListenBtn" title="Normal speed">🔊</button>
+            <div class="sp-audio-label">Normal</div>
+          </div>
+          <div>
+            <button class="slow-btn" id="spSlowBtn" title="Slow speed">🐢</button>
+            <div class="sp-audio-label">Slow</div>
+          </div>
+        </div>
+
+        <div class="sp-controls">
+          <button class="mic-btn" id="micBtn">🎙️</button>
+        </div>
+        <div class="sp-transcript" id="spTranscript">&nbsp;</div>
+        <div class="sp-feedback" id="spFeedback">&nbsp;</div>
+        <div class="sp-actions">
+          <button class="sp-retry" id="spRetryBtn">🔁 Try Again</button>
+          <button class="sp-next" id="spNextBtn">Next →</button>
+        </div>
+        <div id="spUnsupported"></div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('spListenBtn').addEventListener('click', ()=> speak(phraseText, 0.8));
+  document.getElementById('spSlowBtn').addEventListener('click', ()=> speak(phraseText, 0.55));
+
+  if(sec.id === 5){
+    setTimeout(()=> speak(p.atc, 0.8), 400);
+  }
+
+  if(!SpeechRecognitionAPI){
+    document.getElementById('spUnsupported').innerHTML = `<div class="sp-unsupported">
+      🎙️ Speech recognition is not supported in this browser. Please use Google Chrome.</div>`;
+    document.getElementById('micBtn').disabled = true;
+    return;
+  }
+
+  document.getElementById('micBtn').addEventListener('click', ()=>{
+    if(state.recognizing) return;
+    requestMicAndStart(phraseText, idx);
+  });
+
+  document.getElementById('spRetryBtn').addEventListener('click', ()=>{
+    state.results[idx][state.currentIndex] = null;
+    state.attempts = 0;
+    renderPhrase(idx);
+  });
+}
+
+function renderSectionComplete(idx){
+  const sec = SECTIONS[idx];
+  const container = document.getElementById('phase' + (idx+1));
+  const total = sec.phrases.length;
+  const correct = state.results[idx].filter(r => r && r.correct).length;
+  const pct = Math.round((correct/total)*100);
+  const isLast = idx === SECTIONS.length - 1;
+
+  state.completed[idx] = true;
+  if(idx + 1 < SECTIONS.length) state.unlocked[idx + 1] = true;
+  updateNav();
+  updateTopProgress();
+
+  let medal = '🥉', label = 'Good effort! Keep practicing.';
+  if(pct >= 90){ medal = '🥇'; label = 'Excellent work!'; }
+  else if(pct >= 70){ medal = '🥈'; label = 'Great job!'; }
+
+  playFanfare();
+
+  container.innerHTML = `
+    <div class="phase-title"><span class="bar" style="background:${sec.barColor};"></span><h2>Section ${idx+1} — Complete!</h2></div>
+    <p class="phase-sub">${sec.title}</p>
+    <div class="final-card">
+      <div class="medal">${medal}</div>
+      <h3>Section ${idx+1} Completed!</h3>
+      <div class="final-score-big">${pct}%</div>
+      <div class="final-score-sub">${correct} / ${total} phrases correct</div>
+      <div class="final-breakdown">
+        <div class="fb-row">
+          <div class="fb-label">Section ${idx+1}</div>
+          <div class="fb-bar-outer"><div class="fb-bar-inner" style="width:${pct}%;"></div></div>
+          <div class="fb-val">${correct}/${total}</div>
+        </div>
+      </div>
+      ${isLast
+        ? `<button class="restart-btn" id="finalRestartBtn">🎤 Practice All Again</button>`
+        : `<button class="next-section-btn" id="nextSectionBtn">➡️ Next Section ${idx+2}</button>`}
+    </div>
+  `;
+
+  if(isLast){
+    document.getElementById('finalRestartBtn').addEventListener('click', ()=>{
+      state.completed = [false,false,false,false,false];
+      state.unlocked = [true,false,false,false,false];
+      state.results = [[],[],[],[],[]];
+      goToPhase(1);
+      renderSection(0);
+    });
+  } else {
+    document.getElementById('nextSectionBtn').addEventListener('click', ()=>{
+      goToPhase(idx + 2);
+      renderSection(idx + 1);
+    });
+  }
+}
+
+/* ============================================================
+   MIC + RECOGNITION
+   ============================================================ */
+function showMicMessage(html){
+  const box = document.getElementById('spUnsupported');
+  if(box) box.innerHTML = html;
+}
+
+function requestMicAndStart(target, idx){
+  showMicMessage('');
+  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    navigator.mediaDevices.getUserMedia({audio:true})
+      .then(stream=>{
+        stream.getTracks().forEach(t=>t.stop());
+        startRecognition(target, idx);
+      })
+      .catch(()=>{
+        showMicMessage(`<div class="sp-unsupported">🎙️ Microphone blocked. Please enable permissions.
+          <br><button class="nav-btn ghost" id="micRetryBtn" style="margin-top:8px;">Retry</button></div>`);
+        const r = document.getElementById('micRetryBtn');
+        if(r) r.addEventListener('click', ()=> requestMicAndStart(target, idx));
+      });
+  } else {
+    startRecognition(target, idx);
+  }
+}
+
+function startRecognition(target, idx){
+  state.recognition = new SpeechRecognitionAPI();
+  const rec = state.recognition;
+  rec.lang = 'en-US';
+  rec.interimResults = false;
+  rec.maxAlternatives = 5;
+
+  const micBtn = document.getElementById('micBtn');
+  const transcriptEl = document.getElementById('spTranscript');
+  const feedbackEl = document.getElementById('spFeedback');
+
+  state.recognizing = true;
+  micBtn.classList.add('listening');
+  transcriptEl.textContent = '🎧 Listening... speak clearly.';
+  feedbackEl.textContent = '';
+  feedbackEl.className = 'sp-feedback';
+  showMicMessage('');
+
+  rec.onresult = (event)=>{
+    let bestHeard = event.results[0][0].transcript;
+    let bestScore = matchScore(target, bestHeard);
+    for(let i=1;i<event.results[0].length;i++){
+      const alt = event.results[0][i].transcript;
+      const s = matchScore(target, alt);
+      if(s > bestScore){ bestScore = s; bestHeard = alt; }
+    }
+
+    state.attempts++;
+    transcriptEl.textContent = `You said: "${bestHeard}"`;
+    const pct = Math.round(bestScore * 100);
+
+    if(bestScore >= PASS_THRESHOLD){
+      state.results[idx][state.currentIndex] = { correct: true };
+      state.score++;
+      feedbackEl.innerHTML = `✅ Great! ${pct}% match — you said it clearly.`;
+      feedbackEl.className = 'sp-feedback ok';
+      playDing();
+      showNextButton(idx);
+    } else if(bestScore >= 0.5){
+      state.results[idx][state.currentIndex] = { correct: false };
+      feedbackEl.innerHTML = `🟡 Almost! ${pct}% match. Listen slowly and try again.`;
+      feedbackEl.className = 'sp-feedback bad';
+      playBuzz();
+      showRetryAndNext(idx, false);
+    } else {
+      state.results[idx][state.currentIndex] = { correct: false };
+      feedbackEl.innerHTML = `🎯 Let's try again. Press 🐢 SLOW, listen, then speak.`;
+      feedbackEl.className = 'sp-feedback bad';
+      playBuzz();
+      showRetryAndNext(idx, false);
+    }
+  };
+
+  rec.onerror = (e)=>{
+    state.recognizing = false;
+    micBtn.classList.remove('listening');
+    if(e.error === 'no-speech'){
+      feedbackEl.innerHTML = '🎙️ I did not hear anything. Press the mic and try again.';
+    } else if(e.error === 'not-allowed'){
+      feedbackEl.innerHTML = '🎙️ Microphone permission denied.';
+    } else {
+      feedbackEl.innerHTML = '🎙️ Audio error. Please try again.';
+    }
+    feedbackEl.className = 'sp-feedback bad';
+    showRetryAndNext(idx, false);
+  };
+
+  rec.onend = ()=>{
+    state.recognizing = false;
+    micBtn.classList.remove('listening');
+  };
+
+  rec.start();
+}
+
+function showNextButton(idx){
+  const nextBtn = document.getElementById('spNextBtn');
+  const retryBtn = document.getElementById('spRetryBtn');
+  retryBtn.classList.remove('show');
+  nextBtn.classList.add('show');
+  const total = SECTIONS[idx].phrases.length;
+  nextBtn.textContent = (state.currentIndex + 1 >= total) ? '🏁 Finish Section' : 'Next →';
+  nextBtn.onclick = ()=>{
+    state.currentIndex++;
+    state.attempts = 0;
+    if(state.currentIndex >= total){
+      renderSectionComplete(idx);
+    } else {
+      renderPhrase(idx);
+    }
+  };
+}
+
+function showRetryAndNext(idx, allowNext){
+  const nextBtn = document.getElementById('spNextBtn');
+  const retryBtn = document.getElementById('spRetryBtn');
+  retryBtn.classList.add('show');
+  retryBtn.onclick = ()=>{
+    state.results[idx][state.currentIndex] = null;
+    state.attempts = 0;
+    renderPhrase(idx);
+  };
+  if(allowNext){
+    nextBtn.classList.add('show');
+  } else {
+    nextBtn.classList.remove('show');
+  }
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+state.results = SECTIONS.map(s => new Array(s.phrases.length).fill(null));
+renderSection(0);
+updateNav();
+updateTopProgress();
+</script>
+</body>
+</html>
